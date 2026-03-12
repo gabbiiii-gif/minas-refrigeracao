@@ -46,7 +46,11 @@ async function sendWhatsAppMessage(phone, message, config) {
     `https://api.z-api.io/instances/${instanceId}/token/${token}/send-text`,
     {
       method: "POST",
-      headers: { "Content-Type": "application/json", "client-token": token },
+      headers: { 
+  "Content-Type": "application/json", 
+  "client-token": token,
+  "Access-Control-Allow-Origin": "*"
+},
       body: JSON.stringify({ phone: p, message }),
     }
   );
