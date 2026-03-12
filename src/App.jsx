@@ -38,8 +38,8 @@ const TEMPLATES = {
 };
 
 async function sendWhatsAppMessage(phone, message, config) {
-  const { instanceId, token } = config;
-  if (!instanceId || !token) throw new Error("Configure Instance ID e Token da Z-API nas Configurações.");
+  const { instanceId, token, clientToken } = config;
+  if (!instanceId || !token || !clientToken) throw new Error("Configure Instance ID, Token e Client-Token da Z-API nas Configurações.");
   let p = phone.replace(/\D/g, "");
   if (!p.startsWith("55")) p = "55" + p;
   const res = await fetch(
@@ -48,8 +48,7 @@ async function sendWhatsAppMessage(phone, message, config) {
       method: "POST",
       headers: { 
   "Content-Type": "application/json", 
-  "client-token": token,
-  "Access-Control-Allow-Origin": "*"
+  "client-token": clientToken
 },
       body: JSON.stringify({ phone: p, message }),
     }
@@ -59,10 +58,10 @@ async function sendWhatsAppMessage(phone, message, config) {
 }
 
 async function checkInstanceStatus(config) {
-  const { instanceId, token } = config;
-  if (!instanceId || !token) return { connected: false };
+  const { instanceId, token, clientToken } = config;
+  if (!instanceId || !token || !clientToken) return { connected: false };
   try {
-    const res = await fetch(`https://api.z-api.io/instances/${instanceId}/token/${token}/status`, { headers: { "client-token": token } });
+    const res = await fetch(`https://api.z-api.io/instances/${instanceId}/token/${token}/status`, { headers: { "client-token": clientToken } });
     const d = await res.json();
     return { connected: d.connected === true, phone: d.phone };
   } catch { return { connected: false }; }
@@ -1225,7 +1224,7 @@ function Relatorios({servicos,clientes,equipamentos,empresa,addToast}) {
 function Automacao({clientes,addToast}) {
   const ref=usePageTransition("automacao");
   const [autos,setAutos]=useStorage("minas_autos",{a1:true,a2:true,a3:false,a4:true});
-  const [apiConfig]=useStorage("minas_api",{instanceId:"",token:"",numero:""});
+  const [apiConfig]=useStorage("minas_api",{instanceId:"",token:"",clientToken:"",numero:""});
   const [waStatus,setWaStatus]=useState(null); // null=checking, {connected,phone}
   const [sending,setSending]=useState({});
   const [modalWA,setModalWA]=useState(null); // {cliente, template}
@@ -1234,7 +1233,7 @@ function Automacao({clientes,addToast}) {
   // Checa status da instância
   useEffect(()=>{
     setWaStatus(null);
-    checkInstanceStatus({instanceId:apiConfig.instanceId,token:apiConfig.token})
+    checkInstanceStatus({instanceId:apiConfig.instanceId,token:apiConfig.token,clientToken:apiConfig.clientToken})
       .then(s=>setWaStatus(s))
       .catch(()=>setWaStatus({connected:false}));
   },[apiConfig.instanceId,apiConfig.token]);
@@ -1255,7 +1254,7 @@ function Automacao({clientes,addToast}) {
     if(!phone){addToast("Cliente sem WhatsApp cadastrado","error");return}
     setSending(p=>({...p,[cliente.id]:true}));
     try{
-      await sendWhatsAppMessage(phone,msgEdit,{instanceId:apiConfig.instanceId,token:apiConfig.token});
+      await sendWhatsAppMessage(phone,msgEdit,{instanceId:apiConfig.instanceId,token:apiConfig.token,clientToken:apiConfig.clientToken});
       addToast(`✅ Mensagem enviada para ${cliente.nome}!`,"success");
       setModalWA(null);
     }catch(e){
@@ -1289,7 +1288,7 @@ function Automacao({clientes,addToast}) {
       {!waStatus?.connected && (
         <div className="info-box info-amber mb16">
           <AlertCircle size={15}/>
-          <div><b>Configure a Z-API para envios reais:</b> Vá em Configurações → API WhatsApp e informe seu Instance ID e Token da Z-API. <a href="https://app.z-api.io" target="_blank" rel="noreferrer" style={{color:"var(--blue3)"}}>Acesse app.z-api.io →</a></div>
+          <div><b>Configure a Z-API para envios reais:</b> Vá em Configurações → API WhatsApp e informe seu Instance ID, Token e Client-Token da Z-API. <a href="https://app.z-api.io" target="_blank" rel="noreferrer" style={{color:"var(--blue3)"}}>Acesse app.z-api.io →</a></div>
         </div>
       )}
 
@@ -1360,7 +1359,7 @@ function Automacao({clientes,addToast}) {
 function Configuracoes({addToast}) {
   const ref=usePageTransition("config");
   const [empresa,setEmpresa]=useStorage("minas_empresa",{nome:"Minas Refrigeração",cnpj:"",telefone:"",email:"",endereco:""});
-  const [api,setApi]=useStorage("minas_api",{instanceId:"",token:"",numero:"",webhook:""});
+  const [api,setApi]=useStorage("minas_api",{instanceId:"",token:"",clientToken:"",numero:"",webhook:""});
   const [tecnicos,setTecnicos]=useStorage("minas_tecnicos",[{id:1,nome:"Carlos Silva"},{id:2,nome:"André Souza"},{id:3,nome:"Pedro Lima"}]);
   const [novoTec,setNovoTec]=useState("");
   const [testando,setTestando]=useState(false);
@@ -1370,11 +1369,11 @@ function Configuracoes({addToast}) {
   const saveApi=async()=>{
     addToast("Configuração salva! Verificando conexão...","info");
     setTestando(true);
-    const s=await checkInstanceStatus({instanceId:api.instanceId,token:api.token}).catch(()=>({connected:false}));
+    const s=await checkInstanceStatus({instanceId:api.instanceId,token:api.token,clientToken:api.clientToken}).catch(()=>({connected:false}));
     setWaStatus(s);
     setTestando(false);
     if(s.connected) addToast(`✅ Z-API conectado! Número: ${s.phone||"—"}`,"success");
-    else addToast("Z-API não conectada. Verifique Instance ID e Token.","error");
+    else addToast("Z-API não conectada. Verifique Instance ID, Token e Client-Token.","error");
   };
   const addTec=()=>{if(!novoTec.trim())return;setTecnicos(p=>[...p,{id:newId(),nome:novoTec}]);setNovoTec("");addToast("Técnico adicionado!","success")};
   const delTec=id=>{if(!confirm("Remover técnico?"))return;setTecnicos(p=>p.filter(t=>t.id!==id));addToast("Técnico removido","info")};
@@ -1406,9 +1405,9 @@ function Configuracoes({addToast}) {
             <div className="card-body">
               <div className="info-box info-green mb12">
                 <CheckCircle size={14}/>
-                <div>Crie sua conta em <a href="https://app.z-api.io" target="_blank" rel="noreferrer" style={{color:"var(--blue3)",fontWeight:600}}>app.z-api.io</a>, crie uma instância, copie o <b>Instance ID</b> e o <b>Token</b> e cole abaixo. Depois escaneie o QR Code no painel da Z-API.</div>
+                <div>Crie sua conta em <a href="https://app.z-api.io" target="_blank" rel="noreferrer" style={{color:"var(--blue3)",fontWeight:600}}>app.z-api.io</a>, crie uma instância, copie o <b>Instance ID</b>, o <b>Token</b> e o <b>Client-Token</b> (em Segurança no painel) e cole abaixo. Depois escaneie o QR Code no painel da Z-API.</div>
               </div>
-              {[["Instance ID","instanceId","Informe o Instance ID"],["Token","token","Informe o Token"],["Número WhatsApp","numero","5531999990000"],["Webhook URL (opcional)","webhook","https://seusite.com/webhook"]].map(([lbl,field,ph])=>(
+              {[["Instance ID","instanceId","Informe o Instance ID"],["Token","token","Informe o Token"],["Client-Token","clientToken","Token de Segurança da Conta Z-API"],["Número WhatsApp","numero","5531999990000"],["Webhook URL (opcional)","webhook","https://seusite.com/webhook"]].map(([lbl,field,ph])=>(
                 <div key={field} className="input-group">
                   <label className="input-label">{lbl}</label>
                   <input className="input-field" placeholder={ph} value={api[field]||""} onChange={e=>setApi(p=>({...p,[field]:e.target.value}))}/>
