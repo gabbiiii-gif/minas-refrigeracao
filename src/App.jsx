@@ -201,6 +201,17 @@ const INIT_PRECOS = [
   {id:10,servico:"Visita Técnica",descricao:"Diagnóstico sem conserto incluso",valor:"80.00"},
 ];
 
+// ─── DADOS MULTIEMPRESA ──────────────────────────────────────────────────────
+const INIT_EMPRESAS = [
+  {id:1,nome:"Minas Refrigeração",cnpj:"12.345.678/0001-90",plano:"profissional",limiteUsuarios:5,codigo:"MINAS01",createdAt:"2024-01-15"},
+  {id:2,nome:"Gelo & Frio LTDA",cnpj:"98.765.432/0001-10",plano:"basico",limiteUsuarios:5,codigo:"GELO02",createdAt:"2024-03-20"},
+];
+const INIT_USUARIOS = [
+  {id:1,empresaId:1,nome:"Administrador",email:"admin@minasrefrig.com.br",senha:"123456",tipo:"administrador",status:"ativo",createdAt:"2024-01-15"},
+  {id:2,empresaId:1,nome:"Carlos Silva",email:"carlos@minasrefrig.com.br",senha:"123456",tipo:"operador",status:"ativo",createdAt:"2024-02-10"},
+  {id:3,empresaId:2,nome:"Admin Gelo & Frio",email:"admin@gelofrio.com.br",senha:"123456",tipo:"administrador",status:"ativo",createdAt:"2024-03-20"},
+];
+
 // ─── ESTILOS ──────────────────────────────────────────────────────────────────
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600&display=swap');
@@ -415,19 +426,40 @@ textarea.input-field{resize:vertical;min-height:70px;line-height:1.5}
 .info-green{background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.22);color:var(--green)}
 .info-blue{background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.22);color:var(--blue3)}
 
+/* ── LOADING SCREEN ── */
+.loading-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#0a0f1e 0%,#0f172a 50%,#0c1929 100%);position:fixed;inset:0;z-index:9999;overflow:hidden}
+.loading-screen::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle at 30% 50%,rgba(14,165,233,.08) 0%,transparent 50%);animation:loadOrbit 8s linear infinite;pointer-events:none}
+@keyframes loadOrbit{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.loading-logo{display:flex;align-items:center;gap:16px;margin-bottom:40px;position:relative;overflow:hidden}
+.loading-logo-icon{width:64px;height:64px;background:linear-gradient(135deg,#0ea5e9,#2563eb);border-radius:18px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 40px rgba(14,165,233,.4),0 0 80px rgba(37,99,235,.2);flex-shrink:0}
+.loading-logo-text{font-family:'Syne',sans-serif;font-size:36px;font-weight:800;background:linear-gradient(135deg,#e0f2fe,#7dd3fc,#0ea5e9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.loading-shimmer{position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.1),transparent);animation:shimmer 2.5s ease-in-out infinite;pointer-events:none}
+@keyframes shimmer{0%{left:-100%}100%{left:200%}}
+.loading-bar-wrap{width:220px;height:3px;background:rgba(30,58,95,.5);border-radius:10px;overflow:hidden;margin-bottom:24px}
+.loading-bar{height:100%;background:linear-gradient(90deg,#0ea5e9,#2563eb,#7dd3fc);border-radius:10px;width:0%}
+.loading-text{font-size:13px;color:#475569;letter-spacing:.5px;min-height:20px}
+.loading-particles{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.loading-particle{position:absolute;width:2px;height:2px;background:#0ea5e9;border-radius:50%;opacity:0}
+
 /* ── LOGIN ── */
-.login-page{min-height:100vh;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px;position:relative;overflow:hidden}
-.login-page::before{content:'';position:absolute;top:-30%;left:-10%;width:60%;height:60%;background:radial-gradient(circle,rgba(37,99,235,.15) 0%,transparent 70%);pointer-events:none}
-.login-page::after{content:'';position:absolute;bottom:-20%;right:-10%;width:50%;height:50%;background:radial-gradient(circle,rgba(139,92,246,.1) 0%,transparent 70%);pointer-events:none}
-.login-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:32px 28px;width:100%;max-width:400px;position:relative;z-index:1;box-shadow:0 24px 60px rgba(0,0,0,.4)}
-.login-logo{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:28px}
-.login-logo-icon{width:48px;height:48px;background:linear-gradient(135deg,var(--blue),#1d4ed8);border-radius:14px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(37,99,235,.4)}
-.login-title-text{font-family:'Syne',sans-serif;font-size:20px;font-weight:800}
-.login-sub-text{font-size:9.5px;color:var(--blue3);letter-spacing:1.5px;text-transform:uppercase;font-weight:600}
-.login-btn{width:100%;padding:12px;background:var(--blue);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:14px;transition:all .2s;box-shadow:0 4px 14px rgba(37,99,235,.3)}
-.login-btn:hover:not(:disabled){background:#1d4ed8;box-shadow:0 8px 24px rgba(37,99,235,.45)}
+.login-page{min-height:100vh;background:linear-gradient(135deg,#0a0f1e 0%,#0f172a 50%,#0c1929 100%);display:flex;align-items:center;justify-content:center;padding:20px;position:relative;overflow:hidden}
+.login-page::before{content:'';position:absolute;top:-30%;left:-10%;width:60%;height:60%;background:radial-gradient(circle,rgba(14,165,233,.12) 0%,transparent 70%);pointer-events:none}
+.login-page::after{content:'';position:absolute;bottom:-20%;right:-10%;width:50%;height:50%;background:radial-gradient(circle,rgba(37,99,235,.1) 0%,transparent 70%);pointer-events:none}
+.login-card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:36px 30px;width:100%;max-width:420px;position:relative;z-index:1;box-shadow:0 24px 60px rgba(0,0,0,.5),0 0 0 1px rgba(14,165,233,.08)}
+.login-logo{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:8px}
+.login-logo-icon{width:52px;height:52px;background:linear-gradient(135deg,#0ea5e9,#2563eb);border-radius:16px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 30px rgba(14,165,233,.4)}
+.login-title-text{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;background:linear-gradient(135deg,#e0f2fe,#7dd3fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.login-sub-text{font-size:10px;color:#0ea5e9;letter-spacing:2px;text-transform:uppercase;font-weight:700}
+.login-divider{text-align:center;margin:20px 0 18px;font-size:12px;color:var(--text2)}
+.login-divider span{background:var(--card);padding:0 12px;position:relative;z-index:1}
+.login-divider::before{content:'';position:absolute;left:30px;right:30px;top:50%;height:1px;background:var(--border)}
+.login-error{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);border-radius:10px;padding:10px 14px;font-size:12.5px;color:#f87171;display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.login-btn{width:100%;padding:13px;background:linear-gradient(135deg,#0ea5e9,#2563eb);color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:16px;transition:all .25s;box-shadow:0 4px 20px rgba(14,165,233,.3)}
+.login-btn:hover:not(:disabled){box-shadow:0 8px 30px rgba(14,165,233,.5);transform:translateY(-1px)}
 .login-btn:active:not(:disabled){transform:scale(.98)}
-.login-btn:disabled{opacity:.6;cursor:not-allowed}
+.login-btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
+.login-link{color:#0ea5e9;font-size:12.5px;cursor:pointer;text-align:center;margin-top:16px;opacity:.7;transition:opacity .2s}
+.login-link:hover{opacity:1;text-decoration:underline}
 
 /* ── TOASTS ── */
 .toast-wrap{position:fixed;top:14px;right:14px;z-index:1000;display:flex;flex-direction:column;gap:7px;pointer-events:none;max-width:320px;width:calc(100vw - 28px)}
@@ -556,6 +588,53 @@ function Modal({title,onClose,onSave,children,saveLabel="Salvar",saving=false}) 
   );
 }
 
+// ─── LOADING SCREEN ──────────────────────────────────────────────────────────
+function LoadingScreen({onFinish}) {
+  const screenRef=useRef(null);
+  const logoRef=useRef(null);
+  const barRef=useRef(null);
+  const textRef=useRef(null);
+
+  useEffect(()=>{
+    const tl=gsap.timeline({onComplete:()=>{
+      gsap.to(screenRef.current,{opacity:0,duration:.4,ease:"power2.in",onComplete:onFinish});
+    }});
+    // Logo entrada
+    tl.fromTo(logoRef.current,{opacity:0,y:30,scale:.85},{opacity:1,y:0,scale:1,duration:.7,ease:"back.out(1.4)"});
+    // Barra de carregamento
+    tl.to(barRef.current,{width:"100%",duration:2.2,ease:"power1.inOut"},"-=.2");
+    // Textos
+    const textos=["Inicializando FrostERP...","Carregando módulos...","Preparando seu ambiente...","Tudo pronto!"];
+    textos.forEach((txt,i)=>{
+      tl.call(()=>{if(textRef.current)textRef.current.textContent=txt;},null,0.5+i*0.55);
+    });
+    // Partículas
+    const particles=screenRef.current?.querySelectorAll(".loading-particle");
+    if(particles?.length){
+      particles.forEach((p,i)=>{
+        gsap.set(p,{x:Math.random()*window.innerWidth,y:Math.random()*window.innerHeight});
+        gsap.to(p,{opacity:Math.random()*.5+.2,y:"-="+Math.random()*200,duration:Math.random()*3+2,repeat:-1,yoyo:true,delay:Math.random()*2,ease:"sine.inOut"});
+      });
+    }
+    return ()=>tl.kill();
+  },[onFinish]);
+
+  return (
+    <div className="loading-screen" ref={screenRef}>
+      <div className="loading-particles">
+        {Array.from({length:20}).map((_,i)=><div key={i} className="loading-particle"/>)}
+      </div>
+      <div className="loading-logo" ref={logoRef}>
+        <div className="loading-logo-icon"><Snowflake size={30} color="#fff"/></div>
+        <div className="loading-logo-text">FrostERP</div>
+        <div className="loading-shimmer"/>
+      </div>
+      <div className="loading-bar-wrap"><div className="loading-bar" ref={barRef}/></div>
+      <div className="loading-text" ref={textRef}>Inicializando FrostERP...</div>
+    </div>
+  );
+}
+
 // ─── FIELD HELPERS ────────────────────────────────────────────────────────────
 const Field = ({lbl,field,form,setForm,type="text",ph="",required=false}) => (
   <div className="input-group">
@@ -567,49 +646,89 @@ const Field = ({lbl,field,form,setForm,type="text",ph="",required=false}) => (
 );
 
 // ─── LOGIN ────────────────────────────────────────────────────────────────────
-function Login({onLogin}) {
+function Login({onLogin,empresas,usuarios}) {
   const [loading,setLoading]=useState(false);
+  const [error,setError]=useState("");
+  const [form,setForm]=useState({codigo:"",email:"",senha:""});
   const cardRef=useRef(null);
 
   useEffect(()=>{
     if(!cardRef.current) return;
     gsap.fromTo(cardRef.current,
-      {opacity:0,y:40,scale:.95},
-      {opacity:1,y:0,scale:1,duration:.55,ease:"back.out(1.5)"}
+      {opacity:0,y:40,scale:.93},
+      {opacity:1,y:0,scale:1,duration:.6,ease:"back.out(1.5)"}
     );
   },[]);
 
-  const go=()=>{
+  const handleLogin=()=>{
+    setError("");
+    if(!form.codigo.trim()){setError("Informe o código da empresa.");return;}
+    if(!form.email.trim()){setError("Informe seu e-mail.");return;}
+    if(!form.senha.trim()){setError("Informe sua senha.");return;}
+
+    const emp=empresas.find(e=>e.codigo.toLowerCase()===form.codigo.trim().toLowerCase());
+    if(!emp){setError("Empresa não encontrada. Verifique o código.");return;}
+
+    const user=usuarios.find(u=>u.empresaId===emp.id&&u.email.toLowerCase()===form.email.trim().toLowerCase());
+    if(!user){setError("Usuário não encontrado nesta empresa.");return;}
+    if(user.senha!==form.senha){setError("Usuário ou senha inválidos.");return;}
+    if(user.status!=="ativo"){setError("Usuário desativado. Contate o administrador.");return;}
+
     setLoading(true);
-    gsap.to(cardRef.current,{opacity:0,y:-20,duration:.3,ease:"power2.in",onComplete:()=>{setLoading(false);onLogin()}});
+    gsap.to(cardRef.current,{opacity:0,y:-20,scale:.97,duration:.35,ease:"power2.in",onComplete:()=>{
+      setLoading(false);
+      onLogin(user,emp);
+    }});
   };
+
+  const handleKey=e=>{if(e.key==="Enter")handleLogin()};
 
   return (
     <div className="login-page">
       <div className="login-card" ref={cardRef}>
         <div className="login-logo">
-          <div className="login-logo-icon"><Snowflake size={24} color="#fff"/></div>
-          <div><div className="login-title-text">Minas</div><div className="login-sub-text">Refrigeração ERP</div></div>
+          <div className="login-logo-icon"><Snowflake size={26} color="#fff"/></div>
+          <div><div className="login-title-text">FrostERP</div><div className="login-sub-text">Sistema de Gestão</div></div>
+        </div>
+
+        <div style={{position:"relative",textAlign:"center",margin:"18px 0 20px"}}>
+          <div style={{fontSize:15,fontWeight:600,color:"var(--text)"}}>Acessar Sistema</div>
+          <div style={{fontSize:11.5,color:"var(--text2)",marginTop:4}}>Entre com suas credenciais</div>
+          <div style={{position:"absolute",left:0,right:0,bottom:-10,height:1,background:"var(--border)"}}/>
+        </div>
+
+        {error&&<div className="login-error"><AlertCircle size={14}/>{error}</div>}
+
+        <div className="input-group">
+          <label className="input-label">Código da Empresa</label>
+          <input className="input-field" placeholder="Ex: MINAS01" value={form.codigo}
+            onChange={e=>setForm(p=>({...p,codigo:e.target.value.toUpperCase()}))} onKeyDown={handleKey}/>
         </div>
         <div className="input-group">
           <label className="input-label">E-mail</label>
-          <div className="sw" style={{position:"relative"}}>
-            <svg style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",width:14,height:14,color:"var(--text2)"}}><use href="#mail"/></svg>
-            <input className="search-input" defaultValue="admin@minasrefrig.com.br"/>
-          </div>
+          <input className="input-field" type="email" placeholder="seu@email.com.br" value={form.email}
+            onChange={e=>setForm(p=>({...p,email:e.target.value}))} onKeyDown={handleKey}/>
         </div>
         <div className="input-group">
           <label className="input-label">Senha</label>
-          <input className="input-field" type="password" defaultValue="123456"/>
+          <input className="input-field" type="password" placeholder="••••••" value={form.senha}
+            onChange={e=>setForm(p=>({...p,senha:e.target.value}))} onKeyDown={handleKey}/>
         </div>
-        <button className="login-btn" onClick={go} disabled={loading}>
+        <button className="login-btn" onClick={handleLogin} disabled={loading}>
           {loading
             ? <RefreshCw size={15} style={{animation:"spin .8s linear infinite"}}/>
-            : <><LogOut size={15}/> Entrar no Sistema</>
+            : <><LogOut size={15}/> Entrar</>
           }
         </button>
-        <div style={{textAlign:"center",marginTop:14,fontSize:11.5,color:"var(--text2)"}}>
-          Use as credenciais padrão acima para testar
+        <div className="login-link">Esqueci minha senha</div>
+
+        <div style={{marginTop:20,background:"var(--card2)",border:"1px solid var(--border)",borderRadius:10,padding:12}}>
+          <div style={{fontSize:10,color:"var(--text2)",fontWeight:600,textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>Credenciais de teste</div>
+          <div style={{fontSize:11.5,color:"var(--text2)",lineHeight:1.7}}>
+            <div><b style={{color:"var(--text)"}}>Empresa:</b> MINAS01</div>
+            <div><b style={{color:"var(--text)"}}>E-mail:</b> admin@minasrefrig.com.br</div>
+            <div><b style={{color:"var(--text)"}}>Senha:</b> 123456</div>
+          </div>
         </div>
       </div>
     </div>
@@ -1357,7 +1476,7 @@ function Automacao({clientes,addToast}) {
 }
 
 // ─── CONFIGURAÇÕES ────────────────────────────────────────────────────────────
-function Configuracoes({addToast}) {
+function Configuracoes({addToast,currentUser,currentEmpresa,usuarios,setUsuarios}) {
   const ref=usePageTransition("config");
   const [empresa,setEmpresa]=useStorage("minas_empresa",{nome:"Minas Refrigeração",cnpj:"",telefone:"",email:"",endereco:""});
   const [api,setApi]=useStorage("minas_api",{instanceId:"",token:"",clientToken:"",numero:"",webhook:""});
@@ -1365,6 +1484,12 @@ function Configuracoes({addToast}) {
   const [novoTec,setNovoTec]=useState("");
   const [testando,setTestando]=useState(false);
   const [waStatus,setWaStatus]=useState(null);
+  const [userModal,setUserModal]=useState(false);
+  const [userForm,setUserForm]=useState({nome:"",email:"",senha:"",confirmarSenha:"",tipo:"operador"});
+
+  const isAdmin=currentUser?.tipo==="administrador";
+  const empresaUsers=usuarios.filter(u=>u.empresaId===currentEmpresa?.id);
+  const limite=currentEmpresa?.limiteUsuarios||5;
 
   const saveEmpresa=()=>addToast("Dados da empresa salvos!","success");
   const saveApi=async()=>{
@@ -1373,32 +1498,84 @@ function Configuracoes({addToast}) {
     const s=await checkInstanceStatus({instanceId:api.instanceId,token:api.token,clientToken:api.clientToken}).catch(()=>({connected:false}));
     setWaStatus(s);
     setTestando(false);
-    if(s.connected) addToast(`✅ Z-API conectado! Número: ${s.phone||"—"}`,"success");
+    if(s.connected) addToast(`Z-API conectado! Número: ${s.phone||"—"}`,"success");
     else addToast("Z-API não conectada. Verifique Instance ID, Token e Client-Token.","error");
   };
   const addTec=()=>{if(!novoTec.trim())return;setTecnicos(p=>[...p,{id:newId(),nome:novoTec}]);setNovoTec("");addToast("Técnico adicionado!","success")};
   const delTec=id=>{if(!confirm("Remover técnico?"))return;setTecnicos(p=>p.filter(t=>t.id!==id));addToast("Técnico removido","info")};
 
+  const openUserModal=()=>{
+    if(empresaUsers.length>=limite){addToast(`Limite de ${limite} usuários atingido para esta empresa.`,"error");return;}
+    setUserForm({nome:"",email:"",senha:"",confirmarSenha:"",tipo:"operador"});
+    setUserModal(true);
+  };
+  const saveUser=()=>{
+    if(!userForm.nome.trim()){addToast("Nome é obrigatório","error");return;}
+    if(!userForm.email.trim()){addToast("E-mail é obrigatório","error");return;}
+    if(!userForm.senha||userForm.senha.length<6){addToast("Senha deve ter pelo menos 6 caracteres","error");return;}
+    if(userForm.senha!==userForm.confirmarSenha){addToast("Senhas não coincidem","error");return;}
+    if(usuarios.find(u=>u.email.toLowerCase()===userForm.email.trim().toLowerCase()&&u.empresaId===currentEmpresa?.id)){addToast("E-mail já cadastrado nesta empresa","error");return;}
+    setUsuarios(p=>[...p,{id:newId(),empresaId:currentEmpresa?.id,nome:userForm.nome,email:userForm.email.trim(),senha:userForm.senha,tipo:userForm.tipo,status:"ativo",createdAt:new Date().toISOString().slice(0,10)}]);
+    addToast("Usuário cadastrado com sucesso!","success");
+    setUserModal(false);
+  };
+  const toggleUserStatus=(id)=>{setUsuarios(p=>p.map(u=>u.id===id?{...u,status:u.status==="ativo"?"inativo":"ativo"}:u));addToast("Status atualizado!","info")};
+  const delUser=id=>{if(id===currentUser?.id){addToast("Você não pode excluir a si mesmo","error");return;}if(!confirm("Excluir este usuário?"))return;setUsuarios(p=>p.filter(u=>u.id!==id));addToast("Usuário excluído","info")};
+
   return (
     <div ref={ref}>
-      <div className="page-header"><div><h2>Configurações</h2><p>Empresa, integrações e técnicos</p></div></div>
+      <div className="page-header"><div><h2>Configurações</h2><p>Empresa, integrações, técnicos e usuários</p></div></div>
+
+      {/* ── GESTÃO DE USUÁRIOS (só admin) ── */}
+      {isAdmin&&(
+        <div className="card mb16">
+          <div className="card-header">
+            <span className="card-title">Usuários da Empresa</span>
+            <div className="row" style={{gap:8}}>
+              <span className="badge badge-blue"><span className="badge-dot"/>{empresaUsers.length}/{limite}</span>
+              <button className="btn btn-primary btn-sm" onClick={openUserModal}><Plus size={12}/>Novo Usuário</button>
+            </div>
+          </div>
+          <div className="table-wrap"><table>
+            <thead><tr><th>Usuário</th><th>E-mail</th><th>Tipo</th><th>Status</th><th>Desde</th><th>Ações</th></tr></thead>
+            <tbody>{empresaUsers.map(u=>(
+              <tr key={u.id}>
+                <td><div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <div style={{width:28,height:28,background:u.tipo==="administrador"?"linear-gradient(135deg,#0ea5e9,#2563eb)":"linear-gradient(135deg,#2563eb,#7c3aed)",borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:10,fontWeight:800,flexShrink:0}}>{initials(u.nome)}</div>
+                  <span style={{fontWeight:600,fontSize:13}}>{u.nome}{u.id===currentUser?.id?<span style={{fontSize:10,color:"var(--text2)",marginLeft:6}}>(você)</span>:null}</span>
+                </div></td>
+                <td style={{fontSize:12,color:"var(--text2)"}}>{u.email}</td>
+                <td><span className={`badge ${u.tipo==="administrador"?"badge-blue":"badge-gray"}`}><span className="badge-dot"/>{u.tipo==="administrador"?"Admin":"Operador"}</span></td>
+                <td><Badge s={u.status}/></td>
+                <td style={{fontSize:12,color:"var(--text2)"}}>{fmtDate(u.createdAt)}</td>
+                <td><div className="row" style={{gap:3}}>
+                  {u.id!==currentUser?.id&&<><button className="btn btn-ghost btn-sm" onClick={()=>toggleUserStatus(u.id)} title={u.status==="ativo"?"Desativar":"Ativar"}><Shield size={12}/></button>
+                  <button className="btn btn-danger btn-sm" onClick={()=>delUser(u.id)}><Trash2 size={11}/></button></>}
+                </div></td>
+              </tr>
+            ))}</tbody>
+          </table></div>
+        </div>
+      )}
+
       <div className="grid2">
         <div className="card">
-          <div className="card-header"><span className="card-title">🏢 Dados da Empresa</span></div>
+          <div className="card-header"><span className="card-title">Dados da Empresa</span></div>
           <div className="card-body">
+            {currentEmpresa&&<div className="info-box info-blue mb12"><AlertCircle size={14}/><div><b>Código da empresa:</b> {currentEmpresa.codigo} · <b>Plano:</b> {currentEmpresa.plano}</div></div>}
             {[["Nome da Empresa","nome","Minas Refrigeração"],["CNPJ","cnpj","00.000.000/0001-00"],["Telefone","telefone","(31) 3333-4444"],["E-mail","email","contato@empresa.com"],["Endereço","endereco","Rua, número — Cidade/UF"]].map(([lbl,field,ph])=>(
               <div key={field} className="input-group">
                 <label className="input-label">{lbl}</label>
-                <input className="input-field" placeholder={ph} value={empresa[field]||""} onChange={e=>setEmpresa(p=>({...p,[field]:e.target.value}))}/>
+                <input className="input-field" placeholder={ph} value={empresa[field]||""} onChange={e=>setEmpresa(p=>({...p,[field]:e.target.value}))} disabled={!isAdmin}/>
               </div>
             ))}
-            <button className="btn btn-primary" onClick={saveEmpresa}><Save size={13}/>Salvar</button>
+            {isAdmin&&<button className="btn btn-primary" onClick={saveEmpresa}><Save size={13}/>Salvar</button>}
           </div>
         </div>
         <div>
           <div className="card mb12">
             <div className="card-header">
-              <span className="card-title">📱 Z-API WhatsApp</span>
+              <span className="card-title">Z-API WhatsApp</span>
               {waStatus!==null&&(waStatus.connected
                 ? <span className="badge badge-green"><span className="badge-dot"/>Conectado</span>
                 : <span className="badge badge-red"><span className="badge-dot"/>Desconectado</span>)}
@@ -1406,7 +1583,7 @@ function Configuracoes({addToast}) {
             <div className="card-body">
               <div className="info-box info-green mb12">
                 <CheckCircle size={14}/>
-                <div>Crie sua conta em <a href="https://app.z-api.io" target="_blank" rel="noreferrer" style={{color:"var(--blue3)",fontWeight:600}}>app.z-api.io</a>, crie uma instância, copie o <b>Instance ID</b>, o <b>Token</b> e o <b>Client-Token</b> (em Segurança no painel) e cole abaixo. Depois escaneie o QR Code no painel da Z-API.</div>
+                <div>Crie sua conta em <a href="https://app.z-api.io" target="_blank" rel="noreferrer" style={{color:"var(--blue3)",fontWeight:600}}>app.z-api.io</a>, crie uma instância, copie o <b>Instance ID</b>, o <b>Token</b> e o <b>Client-Token</b> e cole abaixo.</div>
               </div>
               {[["Instance ID","instanceId","Informe o Instance ID"],["Token","token","Informe o Token"],["Client-Token","clientToken","Token de Segurança da Conta Z-API"],["Número WhatsApp","numero","5531999990000"],["Webhook URL (opcional)","webhook","https://seusite.com/webhook"]].map(([lbl,field,ph])=>(
                 <div key={field} className="input-group">
@@ -1423,7 +1600,7 @@ function Configuracoes({addToast}) {
             </div>
           </div>
           <div className="card">
-            <div className="card-header"><span className="card-title">👨‍🔧 Técnicos</span></div>
+            <div className="card-header"><span className="card-title">Técnicos</span></div>
             <div className="card-body">
               {tecnicos.map(t=>(
                 <div key={t.id} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 0",borderBottom:"1px solid rgba(30,58,95,.25)"}}>
@@ -1440,6 +1617,33 @@ function Configuracoes({addToast}) {
           </div>
         </div>
       </div>
+
+      {/* Modal cadastro de usuário */}
+      {userModal&&<Modal title="Novo Usuário" onClose={()=>setUserModal(false)} onSave={saveUser}>
+        <Field lbl="Nome completo" field="nome" form={userForm} setForm={setUserForm} ph="Nome do usuário" required/>
+        <Field lbl="E-mail" field="email" form={userForm} setForm={setUserForm} type="email" ph="email@empresa.com" required/>
+        <div className="input-row">
+          <div className="input-group">
+            <label className="input-label">Senha <span style={{color:"var(--red)"}}>*</span></label>
+            <input className="input-field" type="password" placeholder="Mín. 6 caracteres" value={userForm.senha} onChange={e=>setUserForm(p=>({...p,senha:e.target.value}))}/>
+          </div>
+          <div className="input-group">
+            <label className="input-label">Confirmar Senha <span style={{color:"var(--red)"}}>*</span></label>
+            <input className="input-field" type="password" placeholder="Repita a senha" value={userForm.confirmarSenha} onChange={e=>setUserForm(p=>({...p,confirmarSenha:e.target.value}))}/>
+          </div>
+        </div>
+        <div className="input-group">
+          <label className="input-label">Tipo de Usuário</label>
+          <select className="select-field" value={userForm.tipo} onChange={e=>setUserForm(p=>({...p,tipo:e.target.value}))}>
+            <option value="operador">Operador</option>
+            <option value="administrador">Administrador</option>
+          </select>
+        </div>
+        <div className="info-box info-blue" style={{marginTop:8}}>
+          <AlertCircle size={14}/>
+          <div style={{fontSize:12}}><b>Operador:</b> cria OS, vê clientes, registra atendimentos. <b>Admin:</b> acesso total + gestão de usuários.</div>
+        </div>
+      </Modal>}
     </div>
   );
 }
@@ -1459,17 +1663,21 @@ const NAV=[
 
 // ─── ROOT ─────────────────────────────────────────────────────────────────────
 export default function App() {
-  const [logged,setLogged]       = useState(false);
-  const [page,setPage]           = useState("dashboard");
-  const [sideOpen,setSideOpen]   = useState(()=>window.innerWidth>768);
-  const [toasts,setToasts]       = useState([]);
-  const [clientes,setClientes]   = useStorage("minas_clientes",    INIT_CLIENTES);
-  const [equips,setEquips]       = useStorage("minas_equipamentos", INIT_EQUIPS);
-  const [servicos,setServicos]   = useStorage("minas_servicos",     INIT_SERVICOS);
-  const [precos,setPrecos]       = useStorage("minas_precos",       INIT_PRECOS);
-  const [empresa]                = useStorage("minas_empresa",      {nome:"Minas Refrigeração"});
-  const sideRef                  = useRef(null);
-  const sideMounted              = useRef(false);
+  const [phase,setPhase]               = useState("loading"); // "loading" | "login" | "app"
+  const [currentUser,setCurrentUser]   = useState(null);
+  const [currentEmpresa,setCurrentEmpresa] = useState(null);
+  const [page,setPage]                 = useState("dashboard");
+  const [sideOpen,setSideOpen]         = useState(()=>window.innerWidth>768);
+  const [toasts,setToasts]             = useState([]);
+  const [clientes,setClientes]         = useStorage("minas_clientes",    INIT_CLIENTES);
+  const [equips,setEquips]             = useStorage("minas_equipamentos", INIT_EQUIPS);
+  const [servicos,setServicos]         = useStorage("minas_servicos",     INIT_SERVICOS);
+  const [precos,setPrecos]             = useStorage("minas_precos",       INIT_PRECOS);
+  const [empresa]                      = useStorage("minas_empresa",      {nome:"Minas Refrigeração"});
+  const [empresas]                     = useStorage("frost_empresas",     INIT_EMPRESAS);
+  const [usuarios,setUsuarios]         = useStorage("frost_usuarios",     INIT_USUARIOS);
+  const sideRef                        = useRef(null);
+  const sideMounted                    = useRef(false);
 
   const addToast=(msg,type="info")=>{
     const id=newId();
@@ -1484,11 +1692,24 @@ export default function App() {
     if(sideOpen) { gsap.fromTo(sideRef.current,{x:-280},{x:0,duration:.32,ease:"power3.out"}); }
   },[sideOpen]);
 
+  const handleLogin=(user,emp)=>{
+    setCurrentUser(user);
+    setCurrentEmpresa(emp);
+    setPhase("app");
+  };
+
+  const handleLogout=()=>{
+    setCurrentUser(null);
+    setCurrentEmpresa(null);
+    setPhase("login");
+    setPage("dashboard");
+  };
+
   const go=id=>{setPage(id);setSideOpen(false)};
   const grouped=NAV.reduce((a,n)=>{if(!a[n.section])a[n.section]=[];a[n.section].push(n);return a},{});
   const pageLabel=NAV.find(n=>n.id===page)?.label||"";
 
-  const props={clientes,setClientes,equipamentos:equips,setEquipamentos:setEquips,servicos,setServicos,precos,setPrecos,empresa,addToast};
+  const props={clientes,setClientes,equipamentos:equips,setEquipamentos:setEquips,servicos,setServicos,precos,setPrecos,empresa,addToast,currentUser,currentEmpresa,usuarios,setUsuarios};
 
   const renderPage=()=>{
     switch(page){
@@ -1505,7 +1726,14 @@ export default function App() {
     }
   };
 
-  if(!logged) return <><style>{css}</style><Login onLogin={()=>setLogged(true)}/><Toasts list={toasts}/></>;
+  // ── FASE: LOADING ──
+  if(phase==="loading") return <><style>{css}</style><LoadingScreen onFinish={()=>setPhase("login")}/></>;
+
+  // ── FASE: LOGIN ──
+  if(phase==="login") return <><style>{css}</style><Login onLogin={handleLogin} empresas={empresas} usuarios={usuarios}/><Toasts list={toasts}/></>;
+
+  // ── FASE: APP ──
+  const userInitials=currentUser?initials(currentUser.nome):"??";
 
   return (
     <>
@@ -1515,8 +1743,8 @@ export default function App() {
         <aside className={`sidebar ${sideOpen?"":"closed"}`} ref={sideRef}>
           <div className="sidebar-logo">
             <div className="logo-box">
-              <div className="logo-icon"><Snowflake size={19} color="#fff"/></div>
-              <div><div className="logo-text">Minas Refrigeração</div><div className="logo-sub">ERP v3.0</div></div>
+              <div className="logo-icon" style={{background:"linear-gradient(135deg,#0ea5e9,#2563eb)"}}><Snowflake size={19} color="#fff"/></div>
+              <div><div className="logo-text">FrostERP</div><div className="logo-sub">{currentEmpresa?.nome||"Sistema"}</div></div>
             </div>
           </div>
           {Object.entries(grouped).map(([sec,items])=>(
@@ -1531,12 +1759,12 @@ export default function App() {
           ))}
           <div className="sidebar-footer">
             <div className="user-card">
-              <div className="avatar">AM</div>
+              <div className="avatar">{userInitials}</div>
               <div style={{flex:1,minWidth:0}}>
-                <div className="user-name">Administrador</div>
-                <div className="user-role">Minas Refrigeração</div>
+                <div className="user-name">{currentUser?.nome||"Usuário"}</div>
+                <div className="user-role">{currentUser?.tipo==="administrador"?"Admin":"Operador"} · {currentEmpresa?.nome||""}</div>
               </div>
-              <button className="btn btn-ghost btn-sm" style={{padding:5,flexShrink:0}} onClick={()=>setLogged(false)} title="Sair"><LogOut size={13}/></button>
+              <button className="btn btn-ghost btn-sm" style={{padding:5,flexShrink:0}} onClick={handleLogout} title="Sair"><LogOut size={13}/></button>
             </div>
           </div>
         </aside>
@@ -1550,7 +1778,7 @@ export default function App() {
               <button className="icon-btn" onClick={()=>addToast(`${servicos.filter(s=>s.status==="agendado").length} OS agendadas · ${clientes.length} clientes`,"info")}>
                 <Bell size={15}/><span className="notif-dot"/>
               </button>
-              <div className="avatar" style={{width:30,height:30,fontSize:11,cursor:"pointer"}} onClick={()=>go("config")}>AM</div>
+              <div className="avatar" style={{width:30,height:30,fontSize:11,cursor:"pointer"}} onClick={()=>go("config")}>{userInitials}</div>
             </div>
           </header>
           <div className="content">
