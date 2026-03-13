@@ -7,8 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "wa-server": "cd server && node index.js"
+    "preview": "vite preview"
   },
   "dependencies": {
     "gsap": "^3.14.2",
