@@ -2,6 +2,23 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Regra obrigatória — Commit e Push automático
+
+**Após TODA edição de código neste projeto**, você deve obrigatoriamente:
+
+1. Fazer `git add` nos arquivos modificados
+2. Criar um commit com mensagem descritiva seguindo o padrão:
+   - `feat:` para novas funcionalidades
+   - `fix:` para correções de bugs
+   - `style:` para mudanças visuais/CSS
+   - `refactor:` para refatorações sem mudança de comportamento
+3. Fazer `git push origin main`
+
+O repositório remoto é: **https://github.com/gabbiiii-gif/minas-refrigeracao**
+O deploy no Vercel é automático a cada push na branch `main`.
+
+Nunca deixe mudanças sem commitar e pushar ao final de uma sessão de edição.
+
 ## Commands
 
 ```bash
