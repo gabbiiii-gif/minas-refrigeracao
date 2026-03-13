@@ -198,10 +198,12 @@ const INIT_PRECOS = [
 
 // ─── DADOS MULTIEMPRESA ──────────────────────────────────────────────────────
 const INIT_EMPRESAS = [
+  {id:0,nome:"FrostERP",cnpj:"00.000.000/0001-00",plano:"enterprise",limiteUsuarios:999,codigo:"FROST00",createdAt:"2024-01-01"},
   {id:1,nome:"Minas Refrigeração",cnpj:"12.345.678/0001-90",plano:"profissional",limiteUsuarios:5,codigo:"MINAS01",createdAt:"2024-01-15"},
   {id:2,nome:"Gelo & Frio LTDA",cnpj:"98.765.432/0001-10",plano:"basico",limiteUsuarios:5,codigo:"GELO02",createdAt:"2024-03-20"},
 ];
 const INIT_USUARIOS = [
+  {id:0,empresaId:0,nome:"Super Admin",email:"super@frostera.com.br",senha:"FrostERP@2024",tipo:"super_admin",status:"ativo",createdAt:"2024-01-01"},
   {id:1,empresaId:1,nome:"Administrador",email:"admin@minasrefrig.com.br",senha:"123456",tipo:"administrador",status:"ativo",createdAt:"2024-01-15"},
   {id:2,empresaId:1,nome:"Carlos Silva",email:"carlos@minasrefrig.com.br",senha:"123456",tipo:"operador",status:"ativo",createdAt:"2024-02-10"},
   {id:3,empresaId:2,nome:"Admin Gelo & Frio",email:"admin@gelofrio.com.br",senha:"123456",tipo:"administrador",status:"ativo",createdAt:"2024-03-20"},
