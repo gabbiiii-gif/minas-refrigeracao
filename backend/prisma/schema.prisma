@@ -1,0 +1,438 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+//  FrostERP — Schema Prisma (PostgreSQL)
+//  Arquitetura Multi-Tenant: cada registro pertence a uma empresa (empresa_id)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── ENUM: Plano da empresa ────────────────────────────────────────────────────
+enum PlanoEmpresa {
+  basico
+  profissional
+  enterprise
+}
+
+// ─── ENUM: Status genérico ────────────────────────────────────────────────────
+enum StatusGeral {
+  ativo
+  inativo
+  suspenso
+}
+
+// ─── ENUM: Nível de acesso do usuário ─────────────────────────────────────────
+enum NivelAcesso {
+  super_admin
+  admin
+  operador
+}
+
+// ─── ENUM: Status de ordem de serviço ─────────────────────────────────────────
+enum StatusOS {
+  agendado
+  em_andamento
+  concluido
+  cancelado
+}
+
+// ─── ENUM: Status financeiro ───────────────────────────────────────────────────
+enum StatusFinanceiro {
+  pendente
+  pago
+  vencido
+  cancelado
+  recebido
+}
+
+// ─── ENUM: Tipo de movimentação ───────────────────────────────────────────────
+enum TipoMovimentacao {
+  entrada
+  saida
+}
+
+// ─── ENUM: Tipo de movimentação de estoque ────────────────────────────────────
+enum TipoMovEstoque {
+  entrada
+  saida
+  ajuste
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  TABELA: empresas
+// ═══════════════════════════════════════════════════════════════════════════════
+model Empresa {
+  id               String      @id @default(uuid())
+  nome             String
+  cnpj             String      @unique
+  email            String      @unique
+  telefone         String?
+  plano            PlanoEmpresa @default(basico)
+  status           StatusGeral  @default(ativo)
+  codigo           String      @unique             // Código de acesso ex: MINAS01
+  limite_usuarios  Int         @default(5)
+  logo_url         String?
+  endereco         String?
+  cidade           String?
+  estado           String?
+  cep              String?
+  created_at       DateTime    @default(now())
+  updated_at       DateTime    @updatedAt
+
+  // ─── Relacionamentos ───────────────────────────────
+  usuarios              Usuario[]
+  clientes              Cliente[]
+  fornecedores          Fornecedor[]
+  produtos              Produto[]
+  servicos              Servico[]
+  ordens_servico        OrdemServico[]
+  estoques              Estoque[]
+  movimentacoes_estoque MovimentacaoEstoque[]
+  contas_pagar          ContaPagar[]
+  contas_receber        ContaReceber[]
+  movimentacoes         MovimentacaoFinanceira[]
+  tecnicos              Tecnico[]
+
+  @@map("empresas")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  TABELA: usuarios
+// ═══════════════════════════════════════════════════════════════════════════════
+model Usuario {
+  id            String      @id @default(uuid())
+  empresa_id    String
+  nome          String
+  email         String
+  senha_hash    String
+  nivel_acesso  NivelAcesso @default(operador)
+  ativo         Boolean     @default(true)
+  ultimo_acesso DateTime?
+  avatar_url    String?
+  created_at    DateTime    @default(now())
+  updated_at    DateTime    @updatedAt
+
+  // ─── Relacionamentos ───────────────────────────────
+  empresa        Empresa        @relation(fields: [empresa_id], references: [id], onDelete: Cascade)
+  ordens_tecnico OrdemServico[] @relation("TecnicoOrdens")
+
+  @@unique([empresa_id, email])   // e-mail único por empresa
+  @@map("usuarios")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  TABELA: tecnicos
+// ═══════════════════════════════════════════════════════════════════════════════
+model Tecnico {
+  id         String   @id @default(uuid())
+  empresa_id String
+  nome       String
+  telefone   String?
+  email      String?
+  ativo      Boolean  @default(true)
+  created_at DateTime @default(now())
+
+  empresa        Empresa        @relation(fields: [empresa_id], references: [id], onDelete: Cascade)
+  ordens_servico OrdemServico[]
+
+  @@map("tecnicos")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  TABELA: clientes
+// ═══════════════════════════════════════════════════════════════════════════════
+model Cliente {
+  id           String      @id @default(uuid())
+  empresa_id   String
+  nome         String
+  cpf_cnpj     String?
+  email        String?
+  telefone     String?
+  whatsapp     String?
+  endereco     String?
+  numero       String?
+  complemento  String?
+  bairro       String?
+  cidade       String?
+  estado       String?
+  cep          String?
+  observacoes  String?
+  status       StatusGeral @default(ativo)
+  created_at   DateTime    @default(now())
+  updated_at   DateTime    @updatedAt
+
+  // ─── Relacionamentos ───────────────────────────────
+  empresa        Empresa        @relation(fields: [empresa_id], references: [id], onDelete: Cascade)
+  equipamentos   Equipamento[]
+  ordens_servico OrdemServico[]
+  contas_receber ContaReceber[]
+
+  @@map("clientes")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  TABELA: equipamentos (específico de refrigeração)
+// ═══════════════════════════════════════════════════════════════════════════════
+model Equipamento {
+  id                String      @id @default(uuid())
+  empresa_id        String
+  cliente_id        String
+  tipo              String                          // Split, Câmara Fria, etc.
+  marca             String?
+  modelo            String?
+  numero_serie      String?
+  potencia          String?
+  data_instalacao   DateTime?
+  ultima_manutencao DateTime?
+  status            StatusGeral @default(ativo)
+  observacoes       String?
+  created_at        DateTime    @default(now())
+  updated_at        DateTime    @updatedAt
+
+  cliente        Cliente        @relation(fields: [cliente_id], references: [id], onDelete: Cascade)
+  ordens_servico OrdemServico[]
+
+  @@map("equipamentos")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  TABELA: fornecedores
+// ═══════════════════════════════════════════════════════════════════════════════
+model Fornecedor {
+  id          String   @id @default(uuid())
+  empresa_id  String
+  nome        String
+  cnpj_cpf    String?
+  email       String?
+  telefone    String?
+  contato     String?
+  endereco    String?
+  cidade      String?
+  estado      String?
+  cep         String?
+  observacoes String?
+  ativo       Boolean  @default(true)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  empresa      Empresa      @relation(fields: [empresa_id], references: [id], onDelete: Cascade)
+  contas_pagar ContaPagar[]
+
+  @@map("fornecedores")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  TABELA: produtos
+// ═══════════════════════════════════════════════════════════════════════════════
+model Produto {
+  id              String   @id @default(uuid())
+  empresa_id      String
+  codigo          String?
+  nome            String
+  descricao       String?
+  categoria       String?
+  unidade         String   @default("un")
+  preco_custo     Decimal  @default(0) @db.Decimal(10, 2)
+  preco_venda     Decimal  @default(0) @db.Decimal(10, 2)
+  estoque_minimo  Int      @default(0)
+  ativo           Boolean  @default(true)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  empresa               Empresa               @relation(fields: [empresa_id], references: [id], onDelete: Cascade)
+  estoque               Estoque[]
+  movimentacoes_estoque MovimentacaoEstoque[]
+  itens_ordem           ItemOrdemServico[]
+
+  @@unique([empresa_id, codigo])
+  @@map("produtos")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  TABELA: servicos (tabela de preços)
+// ═══════════════════════════════════════════════════════════════════════════════
+model Servico {
+  id                String   @id @default(uuid())
+  empresa_id        String
+  nome              String
+  descricao         String?
+  categoria         String?
+  valor             Decimal  @default(0) @db.Decimal(10, 2)
+  duracao_estimada  Int?     // em minutos
+  ativo             Boolean  @default(true)
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  empresa        Empresa        @relation(fields: [empresa_id], references: [id], onDelete: Cascade)
+  ordens_servico OrdemServico[]
+
+  @@map("servicos")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  TABELA: ordens_servico
+// ═══════════════════════════════════════════════════════════════════════════════
+model OrdemServico {
+  id                String    @id @default(uuid())
+  empresa_id        String
+  numero_os         Int                            // número sequencial por empresa
+  cliente_id        String
+  equipamento_id    String?
+  servico_id        String?
+  tecnico_id        String?
+  usuario_id        String?                        // quem criou/modificou a OS
+  status            StatusOS  @default(agendado)
+  tipo              String    @default("Manutenção Preventiva")
+  data_agendamento  DateTime?
+  data_inicio       DateTime?
+  data_conclusao    DateTime?
+  valor             Decimal   @default(0) @db.Decimal(10, 2)
+  desconto          Decimal   @default(0) @db.Decimal(10, 2)
+  valor_total       Decimal   @default(0) @db.Decimal(10, 2)
+  observacoes       String?
+  laudo_tecnico     String?
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  empresa     Empresa          @relation(fields: [empresa_id], references: [id], onDelete: Cascade)
+  cliente     Cliente          @relation(fields: [cliente_id], references: [id])
+  equipamento Equipamento?     @relation(fields: [equipamento_id], references: [id])
+  servico     Servico?         @relation(fields: [servico_id], references: [id])
+  tecnico     Tecnico?         @relation(fields: [tecnico_id], references: [id])
+  usuario     Usuario?         @relation("TecnicoOrdens", fields: [usuario_id], references: [id])
+  itens       ItemOrdemServico[]
+  contas_receber ContaReceber[]
+
+  @@unique([empresa_id, numero_os])
+  @@map("ordens_servico")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  TABELA: itens_ordem_servico (produtos usados em cada OS)
+// ═══════════════════════════════════════════════════════════════════════════════
+model ItemOrdemServico {
+  id           String  @id @default(uuid())
+  ordem_id     String
+  produto_id   String
+  quantidade   Int     @default(1)
+  preco_unit   Decimal @db.Decimal(10, 2)
+  subtotal     Decimal @db.Decimal(10, 2)
+
+  ordem   OrdemServico @relation(fields: [ordem_id], references: [id], onDelete: Cascade)
+  produto Produto      @relation(fields: [produto_id], references: [id])
+
+  @@map("itens_ordem_servico")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  TABELA: estoque
+// ═══════════════════════════════════════════════════════════════════════════════
+model Estoque {
+  id           String   @id @default(uuid())
+  empresa_id   String
+  produto_id   String   @unique
+  quantidade   Int      @default(0)
+  local        String?
+  updated_at   DateTime @updatedAt
+
+  empresa Empresa @relation(fields: [empresa_id], references: [id], onDelete: Cascade)
+  produto Produto @relation(fields: [produto_id], references: [id], onDelete: Cascade)
+
+  @@map("estoque")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  TABELA: movimentacoes_estoque
+// ═══════════════════════════════════════════════════════════════════════════════
+model MovimentacaoEstoque {
+  id          String         @id @default(uuid())
+  empresa_id  String
+  produto_id  String
+  tipo        TipoMovEstoque
+  quantidade  Int
+  motivo      String?
+  created_at  DateTime       @default(now())
+
+  empresa Empresa @relation(fields: [empresa_id], references: [id], onDelete: Cascade)
+  produto Produto @relation(fields: [produto_id], references: [id])
+
+  @@map("movimentacoes_estoque")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  TABELA: contas_pagar
+// ═══════════════════════════════════════════════════════════════════════════════
+model ContaPagar {
+  id               String           @id @default(uuid())
+  empresa_id       String
+  fornecedor_id    String?
+  descricao        String
+  categoria        String?
+  valor            Decimal          @db.Decimal(10, 2)
+  data_vencimento  DateTime
+  data_pagamento   DateTime?
+  status           StatusFinanceiro @default(pendente)
+  comprovante_url  String?
+  observacoes      String?
+  created_at       DateTime         @default(now())
+  updated_at       DateTime         @updatedAt
+
+  empresa    Empresa              @relation(fields: [empresa_id], references: [id], onDelete: Cascade)
+  fornecedor Fornecedor?          @relation(fields: [fornecedor_id], references: [id])
+  movimentacoes MovimentacaoFinanceira[]
+
+  @@map("contas_pagar")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  TABELA: contas_receber
+// ═══════════════════════════════════════════════════════════════════════════════
+model ContaReceber {
+  id                String           @id @default(uuid())
+  empresa_id        String
+  cliente_id        String?
+  ordem_servico_id  String?
+  descricao         String
+  categoria         String?
+  valor             Decimal          @db.Decimal(10, 2)
+  data_vencimento   DateTime
+  data_recebimento  DateTime?
+  status            StatusFinanceiro @default(pendente)
+  observacoes       String?
+  created_at        DateTime         @default(now())
+  updated_at        DateTime         @updatedAt
+
+  empresa       Empresa              @relation(fields: [empresa_id], references: [id], onDelete: Cascade)
+  cliente       Cliente?             @relation(fields: [cliente_id], references: [id])
+  ordem_servico OrdemServico?        @relation(fields: [ordem_servico_id], references: [id])
+  movimentacoes MovimentacaoFinanceira[]
+
+  @@map("contas_receber")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  TABELA: movimentacoes_financeiras
+// ═══════════════════════════════════════════════════════════════════════════════
+model MovimentacaoFinanceira {
+  id               String            @id @default(uuid())
+  empresa_id       String
+  tipo             TipoMovimentacao
+  categoria        String?
+  descricao        String
+  valor            Decimal           @db.Decimal(10, 2)
+  data             DateTime          @default(now())
+  conta_pagar_id   String?
+  conta_receber_id String?
+  created_at       DateTime          @default(now())
+
+  empresa       Empresa      @relation(fields: [empresa_id], references: [id], onDelete: Cascade)
+  conta_pagar   ContaPagar?  @relation(fields: [conta_pagar_id], references: [id])
+  conta_receber ContaReceber? @relation(fields: [conta_receber_id], references: [id])
+
+  @@map("movimentacoes_financeiras")
+}
