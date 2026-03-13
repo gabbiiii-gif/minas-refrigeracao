@@ -19,6 +19,22 @@ O deploy no Vercel é automático a cada push na branch `main`.
 
 Nunca deixe mudanças sem commitar e pushar ao final de uma sessão de edição.
 
+## Repositório de referência — anime.js
+
+O código-fonte do **anime.js** está disponível localmente em `referencias/anime/src/` para uso como inspiração de animações.
+
+Estrutura relevante do anime.js:
+- `src/easings/` — curvas de easing (spring, cubic-bezier, steps, irregular, linear)
+- `src/timeline/` — encadeamento e sincronização de animações
+- `src/core/` — motor de renderização, helpers, cores, transforms
+- `src/draggable/` — animações com arraste
+- `src/svg/` — animações SVG, morphing e motion path
+- `src/text/split.js` — animações de texto por letras/palavras
+- `src/utils/stagger.js` — lógica de stagger entre elementos
+- `dist/` — build final (anime.esm.js, anime.iife.js)
+
+Ao implementar animações no projeto, consulte os padrões do anime.js antes de escrever código. O projeto usa **GSAP** — o anime.js é referência de padrões de API e lógica, não uma dependência adicional.
+
 ## Commands
 
 ```bash
