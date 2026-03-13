@@ -563,6 +563,12 @@ function Toasts({list}) {
 
 // ─── MODAL ────────────────────────────────────────────────────────────────────
 function Modal({title,onClose,onSave,children,saveLabel="Salvar",saving=false}) {
+  useEffect(()=>{
+    const onKey=e=>{if(e.key==="Escape"&&!saving)onClose();};
+    document.addEventListener("keydown",onKey);
+    return()=>document.removeEventListener("keydown",onKey);
+  },[onClose,saving]);
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={e=>e.stopPropagation()}>
@@ -716,15 +722,6 @@ function Login({onLogin,empresas,usuarios}) {
           }
         </button>
         <div className="login-link">Esqueci minha senha</div>
-
-        <div style={{marginTop:20,background:"var(--card2)",border:"1px solid var(--border)",borderRadius:10,padding:12}}>
-          <div style={{fontSize:10,color:"var(--text2)",fontWeight:600,textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>Credenciais de teste</div>
-          <div style={{fontSize:11.5,color:"var(--text2)",lineHeight:1.7}}>
-            <div><b style={{color:"var(--text)"}}>Empresa:</b> MINAS01</div>
-            <div><b style={{color:"var(--text)"}}>E-mail:</b> admin@minasrefrig.com.br</div>
-            <div><b style={{color:"var(--text)"}}>Senha:</b> 123456</div>
-          </div>
-        </div>
       </div>
     </div>
   );
@@ -817,6 +814,7 @@ function Clientes({clientes,setClientes,equipamentos,addToast}) {
   const [search,setSearch]=useState("");
   const [modal,setModal]=useState(false);
   const [editing,setEditing]=useState(null);
+  const [saving,setSaving]=useState(false);
   const EMPTY={nome:"",telefone:"",whatsapp:"",email:"",endereco:"",cidade:"",estado:"MG",status:"ativo"};
   const [form,setForm]=useState(EMPTY);
 
@@ -825,9 +823,11 @@ function Clientes({clientes,setClientes,equipamentos,addToast}) {
   const openEdit=c=>{setEditing(c.id);setForm({...c});setModal(true)};
   const save=()=>{
     if(!form.nome.trim()){addToast("Nome é obrigatório","error");return}
+    setSaving(true);
     if(editing) setClientes(p=>p.map(c=>c.id===editing?{...form,id:editing}:c));
     else setClientes(p=>[...p,{...form,id:newId()}]);
     addToast(editing?"Cliente atualizado!":"Cliente cadastrado!","success");
+    setSaving(false);
     setModal(false);
   };
   const del=id=>{if(!confirm("Excluir este cliente?"))return;setClientes(p=>p.filter(c=>c.id!==id));addToast("Cliente excluído","info")};
@@ -869,7 +869,7 @@ function Clientes({clientes,setClientes,equipamentos,addToast}) {
             </table></div>
         }
       </div>
-      {modal&&<Modal title={editing?"Editar Cliente":"Novo Cliente"} onClose={()=>setModal(false)} onSave={save}>
+      {modal&&<Modal title={editing?"Editar Cliente":"Novo Cliente"} onClose={()=>setModal(false)} onSave={save} saving={saving}>
         <Field lbl="Nome completo" field="nome" form={form} setForm={setForm} ph="Ex: Empresa LTDA" required/>
         <div className="input-row"><Field lbl="Telefone" field="telefone" form={form} setForm={setForm} ph="(31) 99999-9999"/><Field lbl="WhatsApp" field="whatsapp" form={form} setForm={setForm} ph="(31) 99999-9999"/></div>
         <Field lbl="E-mail" field="email" form={form} setForm={setForm} type="email" ph="email@empresa.com"/>
@@ -892,6 +892,7 @@ function Equipamentos({equipamentos,setEquipamentos,clientes,addToast}) {
   const [search,setSearch]=useState("");
   const [modal,setModal]=useState(false);
   const [editing,setEditing]=useState(null);
+  const [saving,setSaving]=useState(false);
   const EMPTY={clienteId:"",tipo:"Split",marca:"",modelo:"",potencia:"",dataInstalacao:"",ultimaManutencao:"",status:"ok"};
   const [form,setForm]=useState(EMPTY);
 
@@ -901,10 +902,12 @@ function Equipamentos({equipamentos,setEquipamentos,clientes,addToast}) {
   const save=()=>{
     if(!form.clienteId){addToast("Selecione um cliente","error");return}
     if(!form.tipo.trim()){addToast("Tipo é obrigatório","error");return}
+    setSaving(true);
     const data={...form,clienteId:Number(form.clienteId)};
     if(editing) setEquipamentos(p=>p.map(e=>e.id===editing?{...data,id:editing}:e));
     else setEquipamentos(p=>[...p,{...data,id:newId()}]);
     addToast(editing?"Equipamento atualizado!":"Equipamento cadastrado!","success");
+    setSaving(false);
     setModal(false);
   };
   const del=id=>{if(!confirm("Excluir equipamento?"))return;setEquipamentos(p=>p.filter(e=>e.id!==id));addToast("Excluído","info")};
@@ -947,7 +950,7 @@ function Equipamentos({equipamentos,setEquipamentos,clientes,addToast}) {
             </table></div>
         }
       </div>
-      {modal&&<Modal title={editing?"Editar Equipamento":"Novo Equipamento"} onClose={()=>setModal(false)} onSave={save}>
+      {modal&&<Modal title={editing?"Editar Equipamento":"Novo Equipamento"} onClose={()=>setModal(false)} onSave={save} saving={saving}>
         <div className="input-group">
           <label className="input-label">Cliente <span style={{color:"var(--red)"}}>*</span></label>
           <select className="select-field" value={form.clienteId} onChange={e=>setForm(p=>({...p,clienteId:e.target.value}))}>
@@ -989,6 +992,7 @@ function Servicos({servicos,setServicos,clientes,equipamentos,addToast}) {
   const [filter,setFilter]=useState("todos");
   const [modal,setModal]=useState(false);
   const [editing,setEditing]=useState(null);
+  const [saving,setSaving]=useState(false);
   const [tecnicos]=useStorage("minas_tecnicos",[{id:1,nome:"Carlos Silva"},{id:2,nome:"André Souza"},{id:3,nome:"Pedro Lima"}]);
   const EMPTY={clienteId:"",equipamentoId:"",tipo:"Manutenção Preventiva",tecnico:"",valor:"",data:new Date().toISOString().slice(0,10),status:"agendado",obs:""};
   const [form,setForm]=useState(EMPTY);
@@ -1002,10 +1006,14 @@ function Servicos({servicos,setServicos,clientes,equipamentos,addToast}) {
     if(!form.clienteId){addToast("Selecione um cliente","error");return}
     if(!form.tipo){addToast("Selecione o tipo de serviço","error");return}
     if(!form.data){addToast("Informe a data","error");return}
-    const data={...form,clienteId:Number(form.clienteId),equipamentoId:Number(form.equipamentoId)||0};
+    const valorNum=Number(form.valor);
+    if(form.valor&&isNaN(valorNum)){addToast("Valor inválido","error");return}
+    setSaving(true);
+    const data={...form,clienteId:Number(form.clienteId),equipamentoId:Number(form.equipamentoId)||null,valor:form.valor?String(valorNum.toFixed(2)):""};
     if(editing) setServicos(p=>p.map(s=>s.id===editing?{...data,id:editing}:s));
     else setServicos(p=>[...p,{...data,id:newId()}]);
     addToast(editing?"OS atualizada com sucesso!":"OS criada com sucesso!","success");
+    setSaving(false);
     setModal(false);
   };
   const del=id=>{if(!confirm("Excluir esta OS?"))return;setServicos(p=>p.filter(s=>s.id!==id));addToast("OS excluída","info")};
@@ -1055,7 +1063,7 @@ function Servicos({servicos,setServicos,clientes,equipamentos,addToast}) {
             </>
         }
       </div>
-      {modal&&<Modal title={editing?"Editar OS":"Nova Ordem de Serviço"} onClose={()=>setModal(false)} onSave={save}>
+      {modal&&<Modal title={editing?"Editar OS":"Nova Ordem de Serviço"} onClose={()=>setModal(false)} onSave={save} saving={saving}>
         <div className="input-group">
           <label className="input-label">Cliente <span style={{color:"var(--red)"}}>*</span></label>
           <select className="select-field" value={form.clienteId} onChange={e=>setForm(p=>({...p,clienteId:e.target.value,equipamentoId:""}))}>
@@ -1218,7 +1226,7 @@ function TabelaPrecos({precos,setPrecos,addToast}) {
             ))
         }
       </div>
-      {modal&&<Modal title={editing?"Editar Preço":"Novo Serviço"} onClose={()=>setModal(false)} onSave={save}>
+      {modal&&<Modal title={editing?"Editar Preço":"Novo Serviço"} onClose={()=>setModal(false)} onSave={save} saving={false}>
         <Field lbl="Nome do Serviço" field="servico" form={form} setForm={setForm} ph="Ex: Limpeza Split 12.000 BTU" required/>
         <Field lbl="Descrição" field="descricao" form={form} setForm={setForm} ph="O que está incluso no serviço..."/>
         <div className="input-group">
@@ -1464,7 +1472,7 @@ function Automacao({clientes,addToast}) {
             <label className="input-label">Mensagem (editável antes de enviar)</label>
             <textarea className="input-field" rows={8} value={msgEdit} onChange={e=>setMsgEdit(e.target.value)}/>
           </div>
-          {!waStatus?.connected&&<div className="info-box info-amber"><AlertCircle size={14}/>Configure a Z-API nas Configurações para envios reais.</div>}
+          {!waStatus?.connected&&<div className="info-box info-amber"><AlertCircle size={14}/>Inicie o servidor WhatsApp Web.js em Configurações para envios reais.</div>}
         </Modal>
       )}
     </div>

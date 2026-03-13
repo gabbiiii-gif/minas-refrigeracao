@@ -15,10 +15,37 @@
 
 require('dotenv').config();
 
-const express = require('express');
-const cors    = require('cors');
+const express     = require('express');
+const cors        = require('cors');
+const helmet      = require('helmet');
+const rateLimit   = require('express-rate-limit');
+const compression = require('compression');
 
 const app = express();
+
+// ─── Segurança: headers HTTP ──────────────────────────────────────────────────
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+}));
+
+// ─── Performance: compressão gzip ────────────────────────────────────────────
+app.use(compression());
+
+// ─── Rate limiting geral: 200 req / 15 min por IP ────────────────────────────
+app.use(rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { erro: 'Muitas requisições. Tente novamente em 15 minutos.' },
+}));
+
+// ─── Rate limiting estrito para autenticação: 15 tentativas / 15 min ─────────
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 15,
+  message: { erro: 'Muitas tentativas de login. Tente novamente em 15 minutos.' },
+});
 
 // ─── Middlewares globais ──────────────────────────────────────────────────────
 app.use(cors({
@@ -29,8 +56,8 @@ app.use(cors({
   ],
   credentials: true,
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '2mb' }));
+app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
 // ─── Log de requests em desenvolvimento ──────────────────────────────────────
 if (process.env.NODE_ENV !== 'production') {
@@ -41,7 +68,7 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 // ─── Rotas ────────────────────────────────────────────────────────────────────
-app.use('/api/auth',        require('./routes/auth'));
+app.use('/api/auth',        authLimiter, require('./routes/auth'));
 app.use('/api/empresas',    require('./routes/empresas'));
 app.use('/api/usuarios',    require('./routes/usuarios'));
 app.use('/api/clientes',    require('./routes/clientes'));

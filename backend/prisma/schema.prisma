@@ -87,6 +87,7 @@ model Empresa {
   // ─── Relacionamentos ───────────────────────────────
   usuarios              Usuario[]
   clientes              Cliente[]
+  equipamentos          Equipamento[]
   fornecedores          Fornecedor[]
   produtos              Produto[]
   servicos              Servico[]
@@ -172,6 +173,7 @@ model Cliente {
   ordens_servico OrdemServico[]
   contas_receber ContaReceber[]
 
+  @@index([empresa_id])
   @@map("clientes")
 }
 
@@ -194,9 +196,12 @@ model Equipamento {
   created_at        DateTime    @default(now())
   updated_at        DateTime    @updatedAt
 
+  empresa        Empresa        @relation(fields: [empresa_id], references: [id], onDelete: Cascade)
   cliente        Cliente        @relation(fields: [cliente_id], references: [id], onDelete: Cascade)
   ordens_servico OrdemServico[]
 
+  @@index([empresa_id])
+  @@index([cliente_id])
   @@map("equipamentos")
 }
 
@@ -309,6 +314,10 @@ model OrdemServico {
   contas_receber ContaReceber[]
 
   @@unique([empresa_id, numero_os])
+  @@index([empresa_id])
+  @@index([empresa_id, status])
+  @@index([cliente_id])
+  @@index([tecnico_id])
   @@map("ordens_servico")
 }
 
@@ -386,6 +395,9 @@ model ContaPagar {
   fornecedor Fornecedor?          @relation(fields: [fornecedor_id], references: [id])
   movimentacoes MovimentacaoFinanceira[]
 
+  @@index([empresa_id])
+  @@index([empresa_id, status])
+  @@index([data_vencimento])
   @@map("contas_pagar")
 }
 
@@ -412,6 +424,9 @@ model ContaReceber {
   ordem_servico OrdemServico?        @relation(fields: [ordem_servico_id], references: [id])
   movimentacoes MovimentacaoFinanceira[]
 
+  @@index([empresa_id])
+  @@index([empresa_id, status])
+  @@index([data_vencimento])
   @@map("contas_receber")
 }
 
@@ -430,9 +445,11 @@ model MovimentacaoFinanceira {
   conta_receber_id String?
   created_at       DateTime          @default(now())
 
-  empresa       Empresa      @relation(fields: [empresa_id], references: [id], onDelete: Cascade)
-  conta_pagar   ContaPagar?  @relation(fields: [conta_pagar_id], references: [id])
+  empresa       Empresa       @relation(fields: [empresa_id], references: [id], onDelete: Cascade)
+  conta_pagar   ContaPagar?   @relation(fields: [conta_pagar_id], references: [id])
   conta_receber ContaReceber? @relation(fields: [conta_receber_id], references: [id])
 
+  @@index([empresa_id])
+  @@index([empresa_id, tipo])
   @@map("movimentacoes_financeiras")
 }
