@@ -37,33 +37,28 @@ const TEMPLATES = {
   orcamento: (n, s, v) => `Olá ${n}! 👋\n\n🔧 Serviço: ${s}\n💰 Valor: R$ ${Number(v).toFixed(2).replace(".", ",")}\n\nVálido por 7 dias. Responda para agendar! 😊`,
 };
 
-async function sendWhatsAppMessage(phone, message, config) {
-  const { instanceId, token, clientToken } = config;
-  if (!instanceId || !token || !clientToken) throw new Error("Configure Instance ID, Token e Client-Token da Z-API nas Configurações.");
-  let p = phone.replace(/\D/g, "");
+// ─── WHATSAPP WEB.JS — servidor local (substitui Z-API) ──────────────────────
+// Para iniciar o servidor: cd server && npm install && node index.js
+const WA_DEFAULT_SERVER = "http://localhost:3001";
+
+async function sendWhatsAppMessage(phone, message, serverUrl = WA_DEFAULT_SERVER) {
+  let p = String(phone).replace(/\D/g, "");
   if (!p.startsWith("55")) p = "55" + p;
-  const res = await fetch(
-    `https://api.z-api.io/instances/${instanceId}/token/${token}/send-text`,
-    {
-      method: "POST",
-      headers: { 
-  "Content-Type": "application/json", 
-  "client-token": clientToken
-},
-      body: JSON.stringify({ phone: p, message }),
-    }
-  );
-  if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.message || `Erro ${res.status}`); }
+  const res = await fetch(`${serverUrl}/send`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ phone: p, message }),
+  });
+  if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.error || `Erro ${res.status}`); }
   return res.json();
 }
 
-async function checkInstanceStatus(config) {
-  const { instanceId, token, clientToken } = config;
-  if (!instanceId || !token || !clientToken) return { connected: false };
+async function checkInstanceStatus(serverUrl = WA_DEFAULT_SERVER) {
   try {
-    const res = await fetch(`https://api.z-api.io/instances/${instanceId}/token/${token}/status`, { headers: { "client-token": clientToken } });
+    const res = await fetch(`${serverUrl}/status`);
+    if (!res.ok) return { connected: false };
     const d = await res.json();
-    return { connected: d.connected === true, phone: d.phone };
+    return { connected: d.connected === true, phone: d.phone, qr: d.qr };
   } catch { return { connected: false }; }
 }
 
@@ -1343,19 +1338,20 @@ function Relatorios({servicos,clientes,equipamentos,empresa,addToast}) {
 function Automacao({clientes,addToast}) {
   const ref=usePageTransition("automacao");
   const [autos,setAutos]=useStorage("minas_autos",{a1:true,a2:true,a3:false,a4:true});
-  const [apiConfig]=useStorage("minas_api",{instanceId:"",token:"",clientToken:"",numero:""});
-  const [waStatus,setWaStatus]=useState(null); // null=checking, {connected,phone}
+  const [waConfig]=useStorage("minas_api",{serverUrl:WA_DEFAULT_SERVER});
+  const [waStatus,setWaStatus]=useState(null); // null=checking, {connected,phone,qr}
   const [sending,setSending]=useState({});
   const [modalWA,setModalWA]=useState(null); // {cliente, template}
   const [msgEdit,setMsgEdit]=useState("");
 
-  // Checa status da instância
+  // Checa status do servidor WhatsApp Web.js
   useEffect(()=>{
+    const url=waConfig.serverUrl||WA_DEFAULT_SERVER;
     setWaStatus(null);
-    checkInstanceStatus({instanceId:apiConfig.instanceId,token:apiConfig.token,clientToken:apiConfig.clientToken})
+    checkInstanceStatus(url)
       .then(s=>setWaStatus(s))
       .catch(()=>setWaStatus({connected:false}));
-  },[apiConfig.instanceId,apiConfig.token]);
+  },[waConfig.serverUrl]);
 
   const toggle=k=>{setAutos(p=>{const n={...p,[k]:!p[k]};addToast(n[k]?"Automação ativada!":"Automação pausada","info");return n})};
 
@@ -1374,7 +1370,7 @@ function Automacao({clientes,addToast}) {
     if(!phone){addToast("Cliente sem WhatsApp cadastrado","error");return}
     setSending(p=>({...p,[cliente.id]:true}));
     try{
-      await sendWhatsAppMessage(phone,msgEdit,{instanceId:apiConfig.instanceId,token:apiConfig.token,clientToken:apiConfig.clientToken});
+      await sendWhatsAppMessage(phone,msgEdit,waConfig.serverUrl||WA_DEFAULT_SERVER);
       addToast(`✅ Mensagem enviada para ${cliente.nome}!`,"success");
       setModalWA(null);
     }catch(e){
@@ -1394,7 +1390,7 @@ function Automacao({clientes,addToast}) {
   return (
     <div ref={ref}>
       <div className="page-header">
-        <div><h2>Automação WhatsApp</h2><p>Integração real com Z-API</p></div>
+        <div><h2>Automação WhatsApp</h2><p>Integração via WhatsApp Web.js</p></div>
         <div className="row">
           {waStatus===null
             ? <span className="badge badge-gray"><span className="badge-dot"/>Verificando...</span>
@@ -1408,7 +1404,7 @@ function Automacao({clientes,addToast}) {
       {!waStatus?.connected && (
         <div className="info-box info-amber mb16">
           <AlertCircle size={15}/>
-          <div><b>Configure a Z-API para envios reais:</b> Vá em Configurações → API WhatsApp e informe seu Instance ID, Token e Client-Token da Z-API. <a href="https://app.z-api.io" target="_blank" rel="noreferrer" style={{color:"var(--blue3)"}}>Acesse app.z-api.io →</a></div>
+          <div><b>Inicie o servidor WhatsApp para envios reais:</b> Execute <code style={{fontSize:11,background:"rgba(0,0,0,.2)",padding:"1px 6px",borderRadius:4}}>cd server &amp;&amp; npm install &amp;&amp; node index.js</code> e escaneie o QR Code em Configurações → WhatsApp Web.</div>
         </div>
       )}
 
@@ -1479,7 +1475,7 @@ function Automacao({clientes,addToast}) {
 function Configuracoes({addToast,currentUser,currentEmpresa,usuarios,setUsuarios}) {
   const ref=usePageTransition("config");
   const [empresa,setEmpresa]=useStorage("minas_empresa",{nome:"Minas Refrigeração",cnpj:"",telefone:"",email:"",endereco:""});
-  const [api,setApi]=useStorage("minas_api",{instanceId:"",token:"",clientToken:"",numero:"",webhook:""});
+  const [api,setApi]=useStorage("minas_api",{serverUrl:WA_DEFAULT_SERVER});
   const [tecnicos,setTecnicos]=useStorage("minas_tecnicos",[{id:1,nome:"Carlos Silva"},{id:2,nome:"André Souza"},{id:3,nome:"Pedro Lima"}]);
   const [novoTec,setNovoTec]=useState("");
   const [testando,setTestando]=useState(false);
@@ -1493,13 +1489,14 @@ function Configuracoes({addToast,currentUser,currentEmpresa,usuarios,setUsuarios
 
   const saveEmpresa=()=>addToast("Dados da empresa salvos!","success");
   const saveApi=async()=>{
-    addToast("Configuração salva! Verificando conexão...","info");
     setTestando(true);
-    const s=await checkInstanceStatus({instanceId:api.instanceId,token:api.token,clientToken:api.clientToken}).catch(()=>({connected:false}));
+    const url=api.serverUrl||WA_DEFAULT_SERVER;
+    const s=await checkInstanceStatus(url).catch(()=>({connected:false}));
     setWaStatus(s);
     setTestando(false);
-    if(s.connected) addToast(`Z-API conectado! Número: ${s.phone||"—"}`,"success");
-    else addToast("Z-API não conectada. Verifique Instance ID, Token e Client-Token.","error");
+    if(s.connected) addToast(`WhatsApp conectado! Número: ${s.phone||"—"}`,"success");
+    else if(s.qr) addToast("QR Code disponível — escaneie com o WhatsApp","info");
+    else addToast("Servidor WA não encontrado. Execute: cd server && node index.js","error");
   };
   const addTec=()=>{if(!novoTec.trim())return;setTecnicos(p=>[...p,{id:newId(),nome:novoTec}]);setNovoTec("");addToast("Técnico adicionado!","success")};
   const delTec=id=>{if(!confirm("Remover técnico?"))return;setTecnicos(p=>p.filter(t=>t.id!==id));addToast("Técnico removido","info")};
@@ -1575,26 +1572,49 @@ function Configuracoes({addToast,currentUser,currentEmpresa,usuarios,setUsuarios
         <div>
           <div className="card mb12">
             <div className="card-header">
-              <span className="card-title">Z-API WhatsApp</span>
+              <span className="card-title">WhatsApp Web</span>
               {waStatus!==null&&(waStatus.connected
-                ? <span className="badge badge-green"><span className="badge-dot"/>Conectado</span>
-                : <span className="badge badge-red"><span className="badge-dot"/>Desconectado</span>)}
+                ? <span className="badge badge-green"><span className="badge-dot"/>Conectado{waStatus.phone?` · +${waStatus.phone}`:""}</span>
+                : <span className="badge badge-red"><span className="badge-dot"/>{waStatus.qr?"Aguardando QR Code":"Servidor Offline"}</span>)}
             </div>
             <div className="card-body">
-              <div className="info-box info-green mb12">
-                <CheckCircle size={14}/>
-                <div>Crie sua conta em <a href="https://app.z-api.io" target="_blank" rel="noreferrer" style={{color:"var(--blue3)",fontWeight:600}}>app.z-api.io</a>, crie uma instância, copie o <b>Instance ID</b>, o <b>Token</b> e o <b>Client-Token</b> e cole abaixo.</div>
+              <div className="info-box info-blue mb12">
+                <Wifi size={14}/>
+                <div>Conexão direta via <b>WhatsApp Web.js</b> — sem custos mensais. Inicie o servidor local e escaneie o QR Code com seu celular.</div>
               </div>
-              {[["Instance ID","instanceId","Informe o Instance ID"],["Token","token","Informe o Token"],["Client-Token","clientToken","Token de Segurança da Conta Z-API"],["Número WhatsApp","numero","5531999990000"],["Webhook URL (opcional)","webhook","https://seusite.com/webhook"]].map(([lbl,field,ph])=>(
-                <div key={field} className="input-group">
-                  <label className="input-label">{lbl}</label>
-                  <input className="input-field" placeholder={ph} value={api[field]||""} onChange={e=>setApi(p=>({...p,[field]:e.target.value}))}/>
+              <div className="input-group mb12">
+                <label className="input-label">URL do Servidor WA</label>
+                <input className="input-field" placeholder="http://localhost:3001" value={api.serverUrl||WA_DEFAULT_SERVER} onChange={e=>setApi(p=>({...p,serverUrl:e.target.value}))}/>
+              </div>
+              {/* QR Code — exibido quando o servidor está rodando mas não conectado */}
+              {waStatus?.qr&&!waStatus.connected&&(
+                <div style={{textAlign:"center",margin:"16px 0",padding:"16px",background:"var(--card2)",borderRadius:12,border:"1px solid var(--border)"}}>
+                  <div style={{fontSize:12,color:"var(--text2)",marginBottom:10,fontWeight:600}}>📱 Escaneie com o WhatsApp do celular:</div>
+                  <img src={waStatus.qr} alt="QR Code WhatsApp" style={{width:220,height:220,borderRadius:12,border:"3px solid var(--blue)",display:"block",margin:"0 auto"}}/>
+                  <div style={{fontSize:11,color:"var(--text2)",marginTop:8}}>Abra WhatsApp → Dispositivos vinculados → Vincular dispositivo</div>
                 </div>
-              ))}
-              <div className="row">
+              )}
+              {/* Status: conectado */}
+              {waStatus?.connected&&(
+                <div style={{textAlign:"center",padding:"18px 0",color:"var(--green)"}}>
+                  <CheckCircle size={36}/>
+                  <div style={{marginTop:8,fontWeight:700,fontSize:15}}>WhatsApp Conectado!</div>
+                  {waStatus.phone&&<div style={{fontSize:12,color:"var(--text2)",marginTop:4}}>Número: +{waStatus.phone}</div>}
+                </div>
+              )}
+              <div className="info-box info-amber mt12 mb12" style={{fontSize:11}}>
+                <AlertCircle size={13}/>
+                <div>
+                  Para iniciar o servidor execute no terminal:<br/>
+                  <code style={{fontSize:10,background:"rgba(0,0,0,.3)",padding:"2px 8px",borderRadius:4,display:"inline-block",marginTop:4}}>
+                    cd server &amp;&amp; npm install &amp;&amp; node index.js
+                  </code>
+                </div>
+              </div>
+              <div className="row" style={{gap:8}}>
                 <button className="btn btn-primary" onClick={saveApi} disabled={testando}>
-                  {testando?<RefreshCw size={13} style={{animation:"spin .7s linear infinite"}}/>:<Shield size={13}/>}
-                  Salvar e Testar Conexão
+                  {testando?<RefreshCw size={13} style={{animation:"spin .7s linear infinite"}}/>:<RefreshCw size={13}/>}
+                  Verificar / Atualizar QR
                 </button>
               </div>
             </div>
